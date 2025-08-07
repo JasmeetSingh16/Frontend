@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Compiler</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f0f0f0;
+  }
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+  }
+  label {
+    font-weight: bold;
+  }
+  select, textarea, button {
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-family: monospace;
+  }
+  textarea {
+    height: 250px;
+    resize: vertical;
+  }
+  button {
+    background-color: #007bff;
+    border: none;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  #output {
+    background: #272822;
+    color: #f8f8f2;
+    padding: 15px;
+    min-height: 150px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Code Compiler</h2>
+  <label for="language-select">Select Language:</label>
+  <select id="language-select">
+    <option value="0">Python</option>
+    <option value="4">JavaScript</option>
+    <option value="7">C</option>
+    <option value="77">C++</option>
+    <option value="8">Java</option>
+  </select>
+
+  <label for="code-input">Write your code:</label>
+  <textarea id="code-input" placeholder="Type your code here..."></textarea>
+
+  <button id="compile-btn">Compile Code</button>
+
+  <h3>Output Console:</h3>
+  <pre id="output"></pre>
+</div>
+
+<script>
+  const compileBtn = document.getElementById('compile-btn');
+  const languageSelect = document.getElementById('language-select');
+  const codeInput = document.getElementById('code-input');
+  const outputConsole = document.getElementById('output');
+
+  let pollingInterval = null;
+
+  compileBtn.addEventListener('click', () => {
+    const code = codeInput.value.trim();
+    const langId = languageSelect.value;
+
+    if (!code) {
+      outputConsole.textContent = 'Error: Code cannot be empty.';
+      return;
+    }
+
+    outputConsole.textContent = 'Submitting code for compilation...';
+
+    // POST request to executeCode API
+    fetch('https://codequotient.com/api/executeCode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, langId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        outputConsole.textContent = `Error: ${data.error}`;
+      } else if (data.codeId) {
+        outputConsole.textContent = 'Code submitted successfully. Waiting for result...';
+        startPolling(data.codeId);
+      } else {
+        outputConsole.textContent = 'Unexpected response from server.';
+      }
+    })
+    .catch(err => {
+      outputConsole.textContent = `Error: ${err.message}`;
+    });
+  });
+
+  function startPolling(codeId) {
+    if (pollingInterval) clearInterval(pollingInterval);
+
+    pollingInterval = setInterval(() => {
+      fetch(`https://codequotient.com/api/codeResult/${codeId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.data && Object.keys(data.data).length === 0) {
+            // Result not ready yet, wait more
+            outputConsole.textContent = 'Waiting for output...';
+          } else {
+            clearInterval(pollingInterval);
+            const { output, errors } = data.data;
+            if (errors && errors.trim() !== '') {
+              outputConsole.textContent = `Errors:\n${errors}`;
+            } else {
+              outputConsole.textContent = `Output:\n${output}`;
+            }
+          }
+        })
+        .catch(err => {
+          clearInterval(pollingInterval);
+          outputConsole.textContent = `Error fetching result: ${err.message}`;
+        });
+    }, 2000); // Poll every 2 seconds
+  }
+</script>
+
+</body>
+</html>
