@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Discussion App</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    margin: 0;
+  }
+  #left-pane, #right-pane {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  #left-pane {
+    border-right: 1px solid #ccc;
+  }
+  #question-list {
+    list-style: none;
+    padding: 0;
+  }
+  #question-list li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+  }
+  #question-list li:hover {
+    background-color: #f0f0f0;
+  }
+  form {
+    margin-top: 20px;
+  }
+  label {
+    display: block;
+    margin: 8px 0 4px;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  textarea {
+    resize: vertical;
+  }
+  button {
+    margin-top: 12px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #responses {
+    margin-top: 20px;
+  }
+  .response {
+    border-top: 1px solid #ccc;
+    padding: 10px 0;
+  }
+  .response strong {
+    display: block;
+  }
+  #resolve-btn {
+    margin-top: 20px;
+    background-color: #f44336;
+    border: none;
+    color: white;
+    cursor: pointer;
+  }
+  #resolve-btn:hover {
+    background-color: #d32f2f;
+  }
+</style>
+</head>
+<body>
+
+<div id="left-pane">
+  <h2>Questions</h2>
+  <ul id="question-list"></ul>
+</div>
+
+<div id="right-pane">
+  <h2>Ask a Question</h2>
+  <form id="question-form">
+    <label for="question-title">Title *</label>
+    <input type="text" id="question-title" required />
+    <label for="question-text">Question *</label>
+    <textarea id="question-text" rows="5" required></textarea>
+    <button type="submit">Submit Question</button>
+  </form>
+</div>
+
+<script>
+  const questionListEl = document.getElementById('question-list');
+  const rightPane = document.getElementById('right-pane');
+  const questionForm = document.getElementById('question-form');
+  const questionTitleInput = document.getElementById('question-title');
+  const questionTextInput = document.getElementById('question-text');
+
+  // Store questions with responses
+  let questions = [];
+  let selectedQuestionIndex = null;
+
+  // Render list of questions on left pane
+  function renderQuestionList() {
+    questionListEl.innerHTML = '';
+    questions.forEach((q, idx) => {
+      const li = document.createElement('li');
+      li.textContent = q.title;
+      li.addEventListener('click', () => showQuestionDetails(idx));
+      questionListEl.appendChild(li);
+    });
+  }
+
+  // Show question details, response form and responses on right pane
+  function showQuestionDetails(index) {
+    selectedQuestionIndex = index;
+    const question = questions[index];
+
+    rightPane.innerHTML = `
+      <h2>${escapeHTML(question.title)}</h2>
+      <p>${escapeHTML(question.text)}</p>
+      
+      <form id="response-form">
+        <label for="response-name">Name *</label>
+        <input type="text" id="response-name" required />
+        
+        <label for="response-comment">Comment *</label>
+        <textarea id="response-comment" rows="4" required></textarea>
+        
+        <button type="submit">Submit Response</button>
+      </form>
+      
+      <button id="resolve-btn">Resolve</button>
+      
+      <div id="responses">
+        <h3>Previous Answers</h3>
+      </div>
+    `;
+
+    const responseForm = document.getElementById('response-form');
+    responseForm.addEventListener('submit', handleResponseSubmit);
+
+    document.getElementById('resolve-btn').addEventListener('click', () => {
+      questions.splice(selectedQuestionIndex, 1);
+      selectedQuestionIndex = null;
+      renderQuestionList();
+      resetRightPane();
+    });
+
+    renderResponses();
+  }
+
+  // Escape HTML to prevent injection
+  function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // Render responses for selected question
+  function renderResponses() {
+    const responsesDiv = document.getElementById('responses');
+    const question = questions[selectedQuestionIndex];
+    if (!question || !responsesDiv) return;
+
+    if (!question.responses || question.responses.length === 0) {
+      responsesDiv.innerHTML += '<p>No responses yet.</p>';
+      return;
+    }
+
+    const responsesHTML = question.responses.map(resp => `
+      <div class="response">
+        <strong>${escapeHTML(resp.name)}</strong>
+        <p>${escapeHTML(resp.comment)}</p>
+      </div>
+    `).join('');
+    responsesDiv.innerHTML += responsesHTML;
+  }
+
+  // Handle response form submission
+  function handleResponseSubmit(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('response-name');
+    const commentInput = document.getElementById('response-comment');
+    const name = nameInput.value.trim();
+    const comment = commentInput.value.trim();
+
+    if (!name || !comment) {
+      alert('Please fill both Name and Comment');
+      return;
+    }
+
+    questions[selectedQuestionIndex].responses = questions[selectedQuestionIndex].responses || [];
+    questions[selectedQuestionIndex].responses.push({ name, comment });
+
+    nameInput.value = '';
+    commentInput.value = '';
+
+    renderQuestionDetails(selectedQuestionIndex);
+  }
+
+  // Reset right pane to default question form
+  function resetRightPane() {
+    rightPane.innerHTML = `
+      <h2>Ask a Question</h2>
+      <form id="question-form">
+        <label for="question-title">Title *</label>
+        <input type="text" id="question-title" required />
+        <label for="question-text">Question *</label>
+        <textarea id="question-text" rows="5" required></textarea>
+        <button type="submit">Submit Question</button>
+      </form>
+    `;
+
+    // Re-attach form submit handler
+    const newQuestionForm = document.getElementById('question-form');
+    newQuestionForm.addEventListener('submit', handleQuestionSubmit);
+  }
+
+  // Handle question form submission
+  function handleQuestionSubmit(e) {
+    e.preventDefault();
+
+    const titleInput = document.getElementById('question-title');
+    const textInput = document.getElementById('question-text');
+
+    const title = titleInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!title || !text) {
+      alert('Please fill both Title and Question');
+      return;
+    }
+
+    questions.push({ title, text, responses: [] });
+    renderQuestionList();
+
+    titleInput.value = '';
+    textInput.value = '';
+  }
+
+  // Initial setup: attach event to initial question form
+  questionForm.addEventListener('submit', handleQuestionSubmit);
+</script>
+
+</body>
+</html>
