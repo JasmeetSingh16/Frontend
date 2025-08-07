@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pomodoro Clock</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #d9a679, #c48f69);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  .container {
+    height: 460px;
+    width: 220px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 8px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .upper {
+    flex: 2;
+    background: #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 4.5rem;
+    font-weight: 700;
+    color: #1899a2;
+    position: relative;
+  }
+  .upper::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    background-color: #1899a2;
+  }
+  .bottom {
+    flex: 3;
+    background: #3e342b;
+    padding: 15px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .time-settings {
+    display: flex;
+    justify-content: space-between;
+  }
+  .section {
+    flex: 1;
+    text-align: center;
+  }
+  .section h3 {
+    margin: 0 0 10px 0;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  .time-display {
+    color: #1899a2;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .btn-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  button {
+    background-color: #1c1713;
+    border: none;
+    color: white;
+    font-size: 1.3rem;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .control-buttons {
+    display: flex;
+    justify-content: space-around;
+  }
+  .control-buttons button {
+    width: 90px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="upper" id="time-display">20:00</div>
+  <div class="bottom">
+    <div class="time-settings">
+      <div class="section" id="session-section">
+        <h3>session time</h3>
+        <div class="time-display" id="session-time">20 min</div>
+        <div class="btn-group">
+          <button id="session-decrease">-</button>
+          <button id="session-increase">+</button>
+        </div>
+      </div>
+      <div class="section" id="break-section">
+        <h3>break time</h3>
+        <div class="time-display" id="break-time">5 min</div>
+        <div class="btn-group">
+          <button id="break-decrease">-</button>
+          <button id="break-increase">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="control-buttons">
+      <button id="start-pause-btn">Start</button>
+      <button id="reset-btn">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const timeDisplay = document.getElementById('time-display');
+
+  const sessionTimeDisplay = document.getElementById('session-time');
+  const breakTimeDisplay = document.getElementById('break-time');
+
+  const sessionDecreaseBtn = document.getElementById('session-decrease');
+  const sessionIncreaseBtn = document.getElementById('session-increase');
+  const breakDecreaseBtn = document.getElementById('break-decrease');
+  const breakIncreaseBtn = document.getElementById('break-increase');
+
+  const startPauseBtn = document.getElementById('start-pause-btn');
+  const resetBtn = document.getElementById('reset-btn');
+
+  let sessionTime = 20; // in minutes
+  let breakTime = 5;    // in minutes
+
+  let timer = null;
+  let running = false;
+  let isSession = true;
+  let timeLeft = sessionTime * 60; // in seconds
+
+  // Update displayed times
+  function updateDisplays() {
+    sessionTimeDisplay.textContent = `${sessionTime} min`;
+    breakTimeDisplay.textContent = `${breakTime} min`;
+    timeDisplay.textContent = formatTime(timeLeft);
+  }
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }
+
+  function toggleButtons(disable) {
+    sessionDecreaseBtn.disabled = disable;
+    sessionIncreaseBtn.disabled = disable;
+    breakDecreaseBtn.disabled = disable;
+    breakIncreaseBtn.disabled = disable;
+  }
+
+  // Timer tick
+  function tick() {
+    if (timeLeft > 0) {
+      timeLeft--;
+      updateDisplays();
+    } else {
+      // Switch session/break
+      isSession = !isSession;
+      timeLeft = (isSession ? sessionTime : breakTime) * 60;
+      updateDisplays();
+    }
+  }
+
+  // Event listeners for + and - buttons
+  sessionDecreaseBtn.addEventListener('click', () => {
+    if (sessionTime > 0) {
+      sessionTime--;
+      if (isSession) {
+        timeLeft = sessionTime * 60;
+      }
+      updateDisplays();
+    }
+  });
+
+  sessionIncreaseBtn.addEventListener('click', () => {
+    sessionTime++;
+    if (isSession) {
+      timeLeft = sessionTime * 60;
+    }
+    updateDisplays();
+  });
+
+  breakDecreaseBtn.addEventListener('click', () => {
+    if (breakTime > 0) {
+      breakTime--;
+      if (!isSession) {
+        timeLeft = breakTime * 60;
+      }
+      updateDisplays();
+    }
+  });
+
+  breakIncreaseBtn.addEventListener('click', () => {
+    breakTime++;
+    if (!isSession) {
+      timeLeft = breakTime * 60;
+    }
+    updateDisplays();
+  });
+
+  // Start/Pause button
+  startPauseBtn.addEventListener('click', () => {
+    if (!running) {
+      timer = setInterval(tick, 1000);
+      running = true;
+      startPauseBtn.textContent = 'Pause';
+      toggleButtons(true);
+    } else {
+      clearInterval(timer);
+      running = false;
+      startPauseBtn.textContent = 'Start';
+      toggleButtons(false);
+    }
+  });
+
+  // Reset button
+  resetBtn.addEventListener('click', () => {
+    clearInterval(timer);
+    running = false;
+    isSession = true;
+    timeLeft = sessionTime * 60;
+    startPauseBtn.textContent = 'Start';
+    toggleButtons(false);
+    updateDisplays();
+  });
+
+  // Initial display update
+  updateDisplays();
+</script>
+
+</body>
+</html>
