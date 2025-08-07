@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple To-Do App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      margin: 0;
+    }
+    #left-pane, #right-pane {
+      flex: 1;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #left-pane {
+      border-right: 1px solid #ccc;
+      overflow-y: auto;
+    }
+    #task-list {
+      list-style: none;
+      padding: 0;
+    }
+    #task-list li {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #task-list li.completed span.task-text {
+      text-decoration: line-through;
+      color: gray;
+    }
+    .task-text {
+      flex-grow: 1;
+      cursor: pointer;
+    }
+    button.delete-btn {
+      background: none;
+      border: none;
+      color: red;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button[type="submit"] {
+      padding: 10px;
+      font-size: 16px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div id="left-pane">
+    <h2>Tasks</h2>
+    <ul id="task-list"></ul>
+  </div>
+
+  <div id="right-pane">
+    <h2>Add Task</h2>
+    <form id="task-form">
+      <input type="text" id="task-input" placeholder="Enter new task" required />
+      <button type="submit">Add Task</button>
+    </form>
+  </div>
+
+  <script>
+    const taskForm = document.getElementById('task-form');
+    const taskInput = document.getElementById('task-input');
+    const taskList = document.getElementById('task-list');
+
+    // Add new task
+    taskForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const taskText = taskInput.value.trim();
+      if (taskText === '') return;
+
+      const li = document.createElement('li');
+
+      // Task text span (click to toggle completed)
+      const span = document.createElement('span');
+      span.textContent = taskText;
+      span.classList.add('task-text');
+      span.addEventListener('click', () => {
+        li.classList.toggle('completed');
+      });
+
+      // Delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '✖';
+      deleteBtn.classList.add('delete-btn');
+      deleteBtn.addEventListener('click', () => {
+        li.remove();
+      });
+
+      li.appendChild(span);
+      li.appendChild(deleteBtn);
+      taskList.appendChild(li);
+
+      taskInput.value = '';
+      taskInput.focus();
+    });
+  </script>
+</body>
+</html>
