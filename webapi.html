@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GitHub Repo Fetcher</title>
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    width: 450px;
+  }
+  h1 {
+    margin-top: 0;
+  }
+  form {
+    display: flex;
+    gap: 10px;
+  }
+  input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 1rem;
+  }
+  button {
+    padding: 10px 15px;
+    font-size: 1rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover {
+    background-color: #218838;
+  }
+  #repos-list {
+    margin-top: 20px;
+  }
+  #repos-list ul {
+    padding-left: 0;
+    list-style: none;
+  }
+  #repos-list li {
+    background-color: #ff7043;
+    display: inline-block;
+    padding: 6px 10px;
+    margin: 6px 6px 0 0;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #repos-list li:hover {
+    background-color: #e64a19;
+  }
+  #user-info {
+    margin-top: 20px;
+    font-size: 1.1rem;
+  }
+  #user-info img {
+    width: 60px;
+    border-radius: 5px;
+    vertical-align: middle;
+    margin-right: 12px;
+  }
+  #user-info a {
+    color: #007bff;
+    text-decoration: none;
+  }
+  #user-info a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>API Sample</h1>
+  <form id="user-form">
+    <input type="text" id="username" placeholder="Github username..." required />
+    <button type="submit">Pull User Data</button>
+  </form>
+
+  <div id="user-info"></div>
+  <div id="repos-list"></div>
+</div>
+
+<script>
+  const userForm = document.getElementById('user-form');
+  const usernameInput = document.getElementById('username');
+  const userInfoDiv = document.getElementById('user-info');
+  const reposListDiv = document.getElementById('repos-list');
+
+  userForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const username = usernameInput.value.trim();
+    if (!username) return;
+
+    userInfoDiv.innerHTML = '';
+    reposListDiv.innerHTML = '';
+
+    // Fetch user info and repos concurrently
+    Promise.all([
+      fetch(`https://api.github.com/users/${username}`),
+      fetch(`https://api.github.com/users/${username}/repos`)
+    ]).then(async ([userRes, reposRes]) => {
+      if (!userRes.ok) throw new Error('User not found');
+      if (!reposRes.ok) throw new Error('Repos not found');
+
+      const userData = await userRes.json();
+      const reposData = await reposRes.json();
+
+      // Display user info
+      userInfoDiv.innerHTML = `
+        <h2>${userData.name || userData.login} 
+          <small>(<a href="${userData.html_url}" target="_blank">@${userData.login}</a>)</small>
+        </h2>
+        <img src="${userData.avatar_url}" alt="${userData.login}'s avatar" />
+        <p>Followers: ${userData.followers} - Following: ${userData.following}</p>
+        <p>Repos: ${userData.public_repos}</p>
+        <h3>Repos List:</h3>
+      `;
+
+      // Display repos as list of clickable buttons
+      if (reposData.length === 0) {
+        reposListDiv.innerHTML = '<p>No repositories found.</p>';
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      reposData.forEach(repo => {
+        const li = document.createElement('li');
+        li.textContent = repo.name;
+        li.title = repo.description || 'No description';
+        li.addEventListener('click', () => {
+          window.open(repo.html_url, '_blank');
+        });
+        ul.appendChild(li);
+      });
+      reposListDiv.appendChild(ul);
+    }).catch(err => {
+      userInfoDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+      reposListDiv.innerHTML = '';
+    });
+  });
+</script>
+
+</body>
+</html>
